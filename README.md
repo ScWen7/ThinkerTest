@@ -149,3 +149,89 @@ AndroidManifest.xml 文件进行配置
 
 ### 3、配置结束开始测试使用
 
+#### module 执行DeBug 运行，将项目打包生成  apk 文件,运行在手机中。以App为例,会 在 build-> badApk->生成Apk文件      文件是以 日期时间来命名的 ，比较好区分
+
+![bad_apk_gen](http://oqe10cpgp.bkt.clouddn.com/image/tinkertest/bad_apk_gen.png)
+
+#### 修改配置 build.gradle 文件
+
+```
+//for normal build
+//old apk file to build patch apk
+tinkerOldApkPath = "${bakPath}/app-debug-0629-17-10-31.apk"   //这里配置  刚刚生成的  oldApk 文件
+//proguard mapping file to build patch apk
+tinkerApplyMappingPath = "${bakPath}/app-debug-1018-17-32-47-mapping.txt" //proguard的map映射文件
+//resource R.txt to build patch apk, must input if there is resource changed
+tinkerApplyResourcePath = "${bakPath}/app-debug-0629-17-10-31-R.txt"   //如果修改了 resource内容，将该文件也更新到最新
+```
+
+#### 修改项目中的代码，并构建 差异包
+
+修改MainActivity 中的代码
+
+```
+public class MainActivity extends AppCompatActivity {
+
+    private TextView test_main;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        test_main = (TextView) findViewById(R.id.test_main);
+		//在差异包中修改了  界面中的显示文本   "I am In Path Apk"
+        test_main.setText("I am In Patch Apk");
+    }
+
+    public void loadPath(View view) {
+        String path = Environment.getExternalStoragePublicDirectory(DOWNLOAD_SERVICE).getAbsolutePath() + "/patch_signed_7zip.apk";
+        File file = new File(path);
+        if (file.exists()) {
+            Toast.makeText(this, "补丁存在", Toast.LENGTH_SHORT).show();
+            TinkerInstaller.onReceiveUpgradePatch(getApplicationContext(), path);
+        } else {
+            Toast.makeText(this, "补丁不存在", Toast.LENGTH_SHORT).show();
+        }
+    }
+}
+```
+
+修改完成执行  tinker 的 gradle 命令   tinkerPatchDebug 
+
+可以在命令行或者这里点击运行，然后等待 构建生成 patch 包
+
+ ![](http://oqe10cpgp.bkt.clouddn.com/image/tinkertest/patch_debug.png)
+
+在此过程中可能会失败，重试一次，生成的差异包会在该目录下：
+
+![](http://oqe10cpgp.bkt.clouddn.com/image/tinkertest/patch_gen.png)
+
+#### 将生成的 patch_signed_7zip.apk 文件 导入到sd卡中，但是导入到哪个目录呢？看下面的代码
+
+  ```java
+
+    public void loadPath(View view) {
+      //这里制定了  加载差异包的文件名和目录
+        String path = Environment.getExternalStoragePublicDirectory(DOWNLOAD_SERVICE).getAbsolutePath() + "/patch_signed_7zip.apk";
+        File file = new File(path);
+        if (file.exists()) {
+            Toast.makeText(this, "补丁存在", Toast.LENGTH_SHORT).show();
+            TinkerInstaller.onReceiveUpgradePatch(getApplicationContext(), path);
+        } else {
+            Toast.makeText(this, "补丁不存在", Toast.LENGTH_SHORT).show();
+        }
+    }
+  ```
+
+导入的目录要与 代码中的目录保持一致
+
+#### 再次运行刚刚打包到手机中的应用 点击 loadPath按钮看效果如下
+
+![](http://oqe10cpgp.bkt.clouddn.com/image/tinkertest/patch_test_1.jpeg)
+
+
+
+这里只是体验了一下Tinker的简单实用，具体在项目中的使用还需要进一步的去研究，相信还有很多坑在等着我！
+
+![](http://oqe10cpgp.bkt.clouddn.com/image/expression/IMG_0533.JPG)
+
